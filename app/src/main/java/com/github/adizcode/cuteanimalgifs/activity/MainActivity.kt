@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
                     )
                 }!!
 
-                list.addAll(newList)
+                list.addAll(newList.shuffled())
                 adapter.notifyItemRangeInserted(0, newList.size)
             }
 
