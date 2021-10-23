@@ -2,6 +2,7 @@ package com.github.adizcode.cuteanimalgifs.activity
 
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -76,13 +77,20 @@ class MainActivity : AppCompatActivity() {
                 super.onScrolled(recyclerView, dx, dy)
 
                 // Get positions of the last completely visible items
-                val lastCompletelyVisibleItems = layoutManager.findLastCompletelyVisibleItemPositions(null)
+                val lastCompletelyVisibleItems =
+                    layoutManager.findLastCompletelyVisibleItemPositions(null)
 
                 // The user just made an attempt to scroll
                 if (isScrolling) {
 
                     // The last or second last item is completely visible
-                    if (lastCompletelyVisibleItems.contains(itemsLoaded - 2) || lastCompletelyVisibleItems.contains(itemsLoaded - 1)) {
+                    if (lastCompletelyVisibleItems.contains(itemsLoaded - 2) || lastCompletelyVisibleItems.contains(
+                            itemsLoaded - 1
+                        )
+                    ) {
+
+                        // Show loader
+                        binding.loader.visibility = View.VISIBLE
 
                         // Fetch next chunk of GIFs
                         enqueueRequest()
@@ -98,8 +106,11 @@ class MainActivity : AppCompatActivity() {
     /* Network Call */
 
     private fun enqueueRequest() {
+
+        // Call with updated query parameters
         val call = cuteAnimalGifsApiService.getJsonObjectResponse(key = apiKey, pos = itemsLoaded)
 
+        // Asynchronous HTTP request
         call.enqueue(object : Callback<JsonObject> {
             override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
 
@@ -108,6 +119,7 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
 
+                // Parse response
                 val newList = response.body()?.getAsJsonArray("results")?.map {
 
                     CuteAnimalGif(
@@ -117,10 +129,17 @@ class MainActivity : AppCompatActivity() {
                     )
                 }!!
 
+                // Randomize order of GIFs within this chunk, and append to the data set
                 list.addAll(newList.shuffled())
+
+                // Update UI
                 adapter.notifyItemRangeInserted(itemsLoaded, newList.size)
 
+                // Update the position query parameter
                 itemsLoaded += newList.size
+
+                // Hide loader
+                binding.loader.visibility = View.GONE
             }
 
             override fun onFailure(call: Call<JsonObject>, t: Throwable) {
