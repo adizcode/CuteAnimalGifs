@@ -18,10 +18,13 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 private const val baseUrl = "https://g.tenor.com/"
+private const val apiKey = "KSYBKKTS489O"
 
 class MainActivity : AppCompatActivity() {
     private val list = mutableListOf<CuteAnimalGif>()
     private lateinit var binding: ActivityMainBinding
+    private lateinit var adapter: CuteAnimalGifsAdapter
+    private lateinit var cuteAnimalGifsApiService: CuteAnimalGifsApiService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,23 +34,32 @@ class MainActivity : AppCompatActivity() {
 
         /* Set Up Recycler View */
 
-        val adapter = CuteAnimalGifsAdapter(list, Glide.with(this))
+        adapter = CuteAnimalGifsAdapter(list, Glide.with(this))
         val layoutManager = StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
 
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = layoutManager
 
 
-        /* Network Call */
+        /* Instantiate the API Service */
 
         val retrofit = Retrofit.Builder()
             .baseUrl(baseUrl)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
-        val cuteAnimalGifsApiService = retrofit.create(CuteAnimalGifsApiService::class.java)
+        cuteAnimalGifsApiService = retrofit.create(CuteAnimalGifsApiService::class.java)
 
-        val call = cuteAnimalGifsApiService.getJsonObjectResponse()
+
+        /* Fetch initial data */
+
+        enqueueRequest(pos = 0)
+    }
+
+    /* Network Call */
+
+    private fun enqueueRequest(pos: Int) {
+        val call = cuteAnimalGifsApiService.getJsonObjectResponse(key = apiKey, pos = pos)
 
         call.enqueue(object : Callback<JsonObject> {
             override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
