@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.bumptech.glide.Glide
 import com.github.adizcode.cuteanimalgifs.adapter.CuteAnimalGifsAdapter
@@ -19,12 +20,15 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 private const val baseUrl = "https://g.tenor.com/"
 private const val apiKey = "KSYBKKTS489O"
+private const val spanCount = 2
 
 class MainActivity : AppCompatActivity() {
     private val list = mutableListOf<CuteAnimalGif>()
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: CuteAnimalGifsAdapter
     private lateinit var cuteAnimalGifsApiService: CuteAnimalGifsApiService
+    private var isScrolling = false
+    private var itemsLoaded = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         /* Set Up Recycler View */
 
         adapter = CuteAnimalGifsAdapter(list, Glide.with(this))
-        val layoutManager = StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
+        val layoutManager = StaggeredGridLayoutManager(spanCount, LinearLayoutManager.VERTICAL)
 
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = layoutManager
@@ -53,13 +57,48 @@ class MainActivity : AppCompatActivity() {
 
         /* Fetch initial data */
 
-        enqueueRequest(pos = 0)
+        enqueueRequest()
+
+
+        /* Pagination: Load more GIFs  */
+
+        binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+
+                // The user is trying to scroll
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                    isScrolling = true
+                }
+            }
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                // Get positions of the last completely visible items
+                val lastCompletelyVisibleItems = layoutManager.findLastCompletelyVisibleItemPositions(null)
+
+                // The user just made an attempt to scroll
+                if (isScrolling) {
+
+                    // The last or second last item is completely visible
+                    if (lastCompletelyVisibleItems.contains(itemsLoaded - 2) || lastCompletelyVisibleItems.contains(itemsLoaded - 1)) {
+
+                        // Fetch next chunk of GIFs
+                        enqueueRequest()
+                    }
+                }
+
+                // Scrolling has stopped
+                isScrolling = false
+            }
+        })
     }
 
     /* Network Call */
 
-    private fun enqueueRequest(pos: Int) {
-        val call = cuteAnimalGifsApiService.getJsonObjectResponse(key = apiKey, pos = pos)
+    private fun enqueueRequest() {
+        val call = cuteAnimalGifsApiService.getJsonObjectResponse(key = apiKey, pos = itemsLoaded)
 
         call.enqueue(object : Callback<JsonObject> {
             override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
@@ -79,7 +118,9 @@ class MainActivity : AppCompatActivity() {
                 }!!
 
                 list.addAll(newList.shuffled())
-                adapter.notifyItemRangeInserted(0, newList.size)
+                adapter.notifyItemRangeInserted(itemsLoaded, newList.size)
+
+                itemsLoaded += newList.size
             }
 
             override fun onFailure(call: Call<JsonObject>, t: Throwable) {
