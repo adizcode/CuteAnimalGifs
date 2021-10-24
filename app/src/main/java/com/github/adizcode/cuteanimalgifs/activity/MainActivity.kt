@@ -28,7 +28,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: CuteAnimalGifsAdapter
     private lateinit var cuteAnimalGifsApiService: CuteAnimalGifsApiService
-    private var isScrolling = false
     private var itemsLoaded = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,38 +66,15 @@ class MainActivity : AppCompatActivity() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
 
-                // The user is trying to scroll
-                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
-                    isScrolling = true
+                // RecyclerView cannot be scrolled down anymore - EOL reached
+                if (!recyclerView.canScrollVertically(1)) {
+
+                    // Show loader
+                    binding.loader.visibility = View.VISIBLE
+
+                    // Fetch next chunk of GIFs
+                    enqueueRequest()
                 }
-            }
-
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-
-                // Get positions of the last completely visible items
-                val lastCompletelyVisibleItems =
-                    layoutManager.findLastCompletelyVisibleItemPositions(null)
-
-                // The user just made an attempt to scroll
-                if (isScrolling) {
-
-                    // The last or second last item is completely visible
-                    if (lastCompletelyVisibleItems.contains(itemsLoaded - 2) || lastCompletelyVisibleItems.contains(
-                            itemsLoaded - 1
-                        )
-                    ) {
-
-                        // Show loader
-                        binding.loader.visibility = View.VISIBLE
-
-                        // Fetch next chunk of GIFs
-                        enqueueRequest()
-                    }
-                }
-
-                // Scrolling has stopped
-                isScrolling = false
             }
         })
     }

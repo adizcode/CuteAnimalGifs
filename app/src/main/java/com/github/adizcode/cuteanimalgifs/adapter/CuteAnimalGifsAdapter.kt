@@ -1,5 +1,6 @@
 package com.github.adizcode.cuteanimalgifs.adapter
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -41,6 +42,19 @@ class CuteAnimalGifsAdapter(
                 R.drawable.gif_placeholder
             )
             .into(holder.imageView)
+
+        holder.imageView.setOnClickListener {
+
+            val shareIntent = Intent.createChooser(Intent().apply {
+
+                action = Intent.ACTION_SEND
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, list[position].url)
+
+            }, null)
+
+            holder.imageView.context.startActivity(shareIntent)
+        }
     }
 
     override fun getItemCount(): Int {
