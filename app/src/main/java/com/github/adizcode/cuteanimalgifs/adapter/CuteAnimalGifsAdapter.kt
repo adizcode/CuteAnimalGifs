@@ -1,8 +1,8 @@
 package com.github.adizcode.cuteanimalgifs.adapter
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.RequestManager
 import com.github.adizcode.cuteanimalgifs.R
@@ -44,7 +44,16 @@ class CuteAnimalGifsAdapter(
             .into(holder.imageView)
 
         holder.imageView.setOnClickListener {
-            Toast.makeText(holder.imageView.context, "I was clicked", Toast.LENGTH_SHORT).show()
+
+            val shareIntent = Intent.createChooser(Intent().apply {
+
+                action = Intent.ACTION_SEND
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, list[position].url)
+
+            }, null)
+
+            holder.imageView.context.startActivity(shareIntent)
         }
     }
 
