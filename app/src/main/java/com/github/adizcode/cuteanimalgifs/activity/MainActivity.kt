@@ -1,5 +1,6 @@
 package com.github.adizcode.cuteanimalgifs.activity
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -21,13 +22,17 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 private const val baseUrl = "https://g.tenor.com/"
 private const val apiKey = "KSYBKKTS489O"
-private const val spanCount = 2
+private const val spanCountPortrait = 2
+private const val spanCountLandscape = 4
 
 class MainActivity : AppCompatActivity() {
-    private val list = mutableListOf<CuteAnimalGif>()
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: CuteAnimalGifsAdapter
     private lateinit var cuteAnimalGifsApiService: CuteAnimalGifsApiService
+
+    private val list = mutableListOf<CuteAnimalGif>()
+
+    private var spanCount = spanCountPortrait
     private var itemsLoaded = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,10 +41,14 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        spanCount =
+            if (resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) spanCountPortrait else spanCountLandscape
+
         /* Set Up Recycler View */
 
         adapter = CuteAnimalGifsAdapter(list, Glide.with(this))
-        val layoutManager = StaggeredGridLayoutManager(spanCount, LinearLayoutManager.VERTICAL)
+        val layoutManager =
+            StaggeredGridLayoutManager(spanCount, LinearLayoutManager.VERTICAL)
 
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = layoutManager
