@@ -1,5 +1,6 @@
 package com.github.adizcode.cuteanimalgifs.activity
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -12,6 +13,7 @@ import com.github.adizcode.cuteanimalgifs.adapter.CuteAnimalGifsAdapter
 import com.github.adizcode.cuteanimalgifs.databinding.ActivityMainBinding
 import com.github.adizcode.cuteanimalgifs.model.CuteAnimalGif
 import com.github.adizcode.cuteanimalgifs.network.CuteAnimalGifsApiService
+import com.google.android.material.snackbar.Snackbar
 import com.google.gson.JsonObject
 import retrofit2.Call
 import retrofit2.Callback
@@ -21,14 +23,20 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 private const val baseUrl = "https://g.tenor.com/"
 private const val apiKey = "KSYBKKTS489O"
-private const val spanCount = 2
+private const val spanCountPortrait = 2
+private const val spanCountLandscape = 4
 
 class MainActivity : AppCompatActivity() {
-    private val list = mutableListOf<CuteAnimalGif>()
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: CuteAnimalGifsAdapter
     private lateinit var cuteAnimalGifsApiService: CuteAnimalGifsApiService
+
+    private val list = mutableListOf<CuteAnimalGif>()
+
+    private var spanCount = spanCountPortrait
     private var itemsLoaded = 0
+
+    private var allGifsLoaded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,10 +44,14 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        spanCount =
+            if (resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) spanCountPortrait else spanCountLandscape
+
         /* Set Up Recycler View */
 
         adapter = CuteAnimalGifsAdapter(list, Glide.with(this))
-        val layoutManager = StaggeredGridLayoutManager(spanCount, LinearLayoutManager.VERTICAL)
+        val layoutManager =
+            StaggeredGridLayoutManager(spanCount, LinearLayoutManager.VERTICAL)
 
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = layoutManager
@@ -69,11 +81,26 @@ class MainActivity : AppCompatActivity() {
                 // RecyclerView cannot be scrolled down anymore - EOL reached
                 if (!recyclerView.canScrollVertically(1)) {
 
-                    // Show loader
-                    binding.loader.visibility = View.VISIBLE
+                    // There are more GIFs to be loaded
+                    if (!allGifsLoaded) {
 
-                    // Fetch next chunk of GIFs
-                    enqueueRequest()
+                        // Show loader
+                        binding.loader.visibility = View.VISIBLE
+
+                        // Fetch next chunk of GIFs
+                        enqueueRequest()
+                    }
+
+                    // All GIFs loaded but the user is trying to scroll further
+                    else if (recyclerView.scrollState == RecyclerView.SCROLL_STATE_DRAGGING) {
+
+                        // Let the user know all GIFs have been loaded
+                        Snackbar.make(
+                            binding.root,
+                            "All the GIFs were loaded (^_^)",
+                            Snackbar.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         })
@@ -105,14 +132,21 @@ class MainActivity : AppCompatActivity() {
                     )
                 }!!
 
-                // Randomize order of GIFs within this chunk, and append to the data set
-                list.addAll(newList.shuffled())
+                if (newList.isEmpty()) {
 
-                // Update UI
-                adapter.notifyItemRangeInserted(itemsLoaded, newList.size)
+                    // Don't make further calls
+                    allGifsLoaded = true
+                } else {
 
-                // Update the position query parameter
-                itemsLoaded += newList.size
+                    // Randomize order of GIFs within this chunk, and append to the data set
+                    list.addAll(newList.shuffled())
+
+                    // Update UI
+                    adapter.notifyItemRangeInserted(itemsLoaded, newList.size)
+
+                    // Update the position query parameter
+                    itemsLoaded += newList.size
+                }
 
                 // Hide loader
                 binding.loader.visibility = View.GONE
