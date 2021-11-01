@@ -1,5 +1,6 @@
 package com.github.adizcode.cuteanimalgifs.activity
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
 
     private var allGifsLoaded = false
 
+    @SuppressLint("NotifyDataSetChanged")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -104,6 +106,19 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+
+        /* Pull-to-refresh */
+
+        binding.swipeRefreshLayout.setOnRefreshListener {
+
+            // Clear the list of GIFs
+            list.clear()
+            adapter.notifyDataSetChanged()
+
+            // Fetch new GIFs
+            itemsLoaded = 0
+            enqueueRequest()
+        }
     }
 
     /* Network Call */
@@ -150,6 +165,9 @@ class MainActivity : AppCompatActivity() {
 
                 // Hide loader
                 binding.loader.visibility = View.GONE
+
+                // Stop refreshing
+                binding.swipeRefreshLayout.isRefreshing = false
             }
 
             override fun onFailure(call: Call<JsonObject>, t: Throwable) {
